@@ -1,0 +1,12 @@
+streamlit
+streamlit_timeline
+numpy
+scikit-learn
+matplotlib
+seaborn
+plotly
+streamlit-pandas-profiling
+ydata-profiling
+lxml
+openpyxl
+jupyter
