@@ -69,6 +69,7 @@ example_param_dict= {
     "difficulty":[str,["easy","medium","hard"]],
 }
 
+
 def model(name,param_dict):
     use_random_search=False
     grid_search_dict = dict()
@@ -176,8 +177,38 @@ else:
         st.markdown("dd")
     with ran_for:
         st.markdown("fefe")
-    
 
+#
+def recommended_metric(df,target,is_reg):
+    #TODO
+    pass
+#
 
+#metrics
+if f:
+    index = recommended_metric(df,target,task_is_regression)
+    if task_is_regression:
+        metric_options = ["Accuracy","Precision","F1-Score","Recall","Balanced Accuracy","Matthew Correlation Coefficient"]
+        metric_descriptions = ["a","b","c","d","e","f"]
+        metric = st.selectbox(label="performance metric",options=metric_options,index=0)
+        for i,metric_option in enumerate(metric_options):
+            if metric_option == metric:
+                metric_description = metric_descriptions[i]
+                st.write(metric_description)
 
-#st.toast()
+    else:
+        metric_options = ["mean squared error","mean absolute error","root mean squared error","explained variance score","max error"]
+        metric_descriptions = ["","","","","",""]
+        metric = st.selectbox(label="performance metric",options=metric_options,index=0)
+        for i,metric_option in enumerate(metric_options):
+            if metric_option == metric:
+                metric_description = metric_descriptions[i]
+                st.write(metric_description)
+
+def start_ML_Pipeline():
+    #TODOs
+    pass
+
+st.form_submit_button(label="Start ML Pipeline",on_click=start_ML_Pipeline())
+
+#Add datavisalisation
