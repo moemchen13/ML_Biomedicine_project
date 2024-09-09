@@ -1,2 +1,2 @@
 # ML_Biomedicine_project
-streamlit appliation with ML models
+streamlit application for webbased ML models
