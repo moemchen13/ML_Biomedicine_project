@@ -6,7 +6,7 @@ st.set_page_config(page_title="ML Tabular data site", layout="wide")
 st.title("Welcome to the your online Machine learning side")
 
 
-data_uploader, conf_uploader = st.columns([0.8,0.2],vertical_alignment="top")
+data_uploader, conf_uploader = st.columns([0.6,0.2],vertical_alignment="top")
 with data_uploader:
     f = st.file_uploader("Please upload the dataset you want to analyse with Machine learning models")
     if f:
@@ -146,6 +146,7 @@ def name_add_run_model(use_random_search):
             model_name = st.text_input(label="model name",value="",placeholder="Name your model here")
     with add_side:
         if use_random_search:
+            #might need a st.form_submit_button instead
             st.button(label= f"Add {models[0]} search",on_click=add_run(run_name))
         else:
             st.button(label= f"Add {models[0]}",on_click=add_model(model_name))
@@ -209,6 +210,29 @@ def start_ML_Pipeline():
     #TODOs
     pass
 
-st.form_submit_button(label="Start ML Pipeline",on_click=start_ML_Pipeline())
+def check_JSON_validity():
+    #TODO
+    st.session_state.json_valid=False
+
+def check_JSON():
+    check_JSON_validity()
+    st.session_state.json_checked=True
+    print("why did i activate?")
+
+
+st.session_state.json_valid=False
+st.session_state.json_checked=False
+
+if f:
+
+    st.button(label="Check Json for validity",on_click=check_JSON())
+    print(st.session_state.json_valid)
+    print(st.session_state.json_checked)
+    if not st.session_state.json_valid and st.session_state.json_checked:
+        st.error("Your Configuration file is errorneous")
+    elif not st.session_state.json_checked:
+        st.warning("Your Configuration file is unchecked.")
+    
+    submitted = st.button("Start ML Pipeline",disabled=st.session_state.json_valid)
 
 #Add datavisalisation
