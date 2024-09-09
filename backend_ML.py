@@ -27,3 +27,24 @@ def return_df(file):
     elif extension=="xml":
         df = pd.read_xml(name)
     return df
+
+
+def select_model(model):
+    if model=="Logistic Regression":
+        metric = accuracy_score
+        ML_model = LogisticRegression()
+    elif model == "Decision Tree":
+        metric = accuracy_score
+        ML_model = tree.DecisionTreeClassifier()
+    elif model == "Random Forest":
+        metric = accuracy_score
+        ML_model = RandomForestClassifier()
+    elif model == "Linear Regression":
+        metric = mean_squared_error
+        ML_model = LinearRegression()
+    elif model == "Regression Tree":
+        metric = mean_squared_error
+        ML_model = tree.DecisionTreeRegressor()
+    elif model == "Ridge Regression":
+        metric = mean_squared_error
+        ML_model = Ridge()

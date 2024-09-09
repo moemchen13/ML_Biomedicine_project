@@ -175,7 +175,7 @@ with col2:
 
 
 #create Upload
-f = st.file_uploader("Please upload a dataset of your choosing", type=["csv","tsv","xlsx","xml","json"])
+f = st.file_uploader("Please upload a dataset of your choosing", type=["csv","tsv","xlsx","xml","json"], accept_multiple_files=True)
 if f:
     df = return_df(f)
     st.success("File uploaded")
