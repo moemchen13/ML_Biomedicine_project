@@ -1,1 +1,3 @@
-.data/*
+./data/*
+./stroke.csv
+./test_version.py
