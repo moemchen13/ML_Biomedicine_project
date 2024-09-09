@@ -12,9 +12,6 @@ from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
 
 
 # read in files as pandas dataframe
@@ -85,25 +82,12 @@ def check_data_submission_for_task(ML_task,df,feature_selection,target):
         is_valid=False
     return is_valid, submit_message
 
-
-def start_ML_Pipeline(ML_task,df,features,target,test_split,seed):
-    X = df.loc[features]
-    y = df.loc[target]
-    X_train, X_test, y_train, y_test = train_test_split(X,y,shuffle=True,test_split=test_split, random_state=seed)
-
-    if ML_task == "Classification":
-        models = models("Classification")
-    else: 
-        models = models("Regression")
+def train_model(model,X_train,X_test,y_train,y_test, ):
+    update_events("Model training has started",f"{model} is trained and evaluated")
     
-    stats = np.zeros(size=(2,len(models)))
-    hyperparams = []
-    trained_models = []
-
-    # Create a pipeline with a standard scaler and KNN classifier
+    # Create a pipeline with classifier
     pipeline = Pipeline([
-        ('scaler', StandardScaler()),  # Standardize the features
-        ('knn', KNeighborsClassifier())  # KNN classifier
+        ('model', model)  # KNN classifier
     ])
 
     # Define the parameter grid for grid search
@@ -119,6 +103,34 @@ def start_ML_Pipeline(ML_task,df,features,target,test_split,seed):
     # Fit the model on the training data
     grid_search.fit(X_train, y_train)
 
+    ML_model,metric = select_model(model)
+    ML_model.fit(X_train,y_train)
+    y_pred_train = ML_model.predict(X_train)
+    y_pred_test = ML_model.predict(X_test)
+    train_metric = metric(y_pred_train,y_train)
+    test_metric = metric(y_pred_test,y_test)
+    
+    return model, train_metric, test_metric
+
+
+def ML_Pipeline(ML_task,df,features,target,test_split,seed):
+    X = df.loc[features]
+    y = df.loc[target]
+    
+
+    X_train, X_test, y_train, y_test = train_test_split(X,y,shuffle=True,test_split=test_split, random_state=seed)
+    
+    # imputation and scaling 
+    
+    
+    if ML_task == "Classification":
+        models = models("Classification")
+    else: 
+        models = models("Regression")
+    
+    stats = np.zeros(size=(2,len(models)))
+    hyperparams = []
+    trained_models = []
 
     for i,model in enumerate(models):
         train_metric,test_metric,model = train_model(model,X_train,X_test,y_train,y_test)
