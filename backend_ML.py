@@ -82,58 +82,42 @@ def check_data_submission_for_task(ML_task,df,feature_selection,target):
         is_valid=False
     return is_valid, submit_message
 
-def train_model(model,X_train,X_test,y_train,y_test, ):
+def train_model(model, train_test_split, metric):
     update_events("Model training has started",f"{model} is trained and evaluated")
     
-    # Create a pipeline with classifier
-    pipeline = Pipeline([
-        ('model', model)  # KNN classifier
-    ])
-
-    # Define the parameter grid for grid search
+    X_train, X_test, y_train, y_test = train_test_split
+    folds = 5
+    metric = "accuracy"
     param_grid = {
         'knn__n_neighbors': [3, 5, 7, 9],  # Number of neighbors
         'knn__weights': ['uniform', 'distance'],  # Weight function used in prediction
         'knn__metric': ['euclidean', 'manhattan', 'minkowski']  # Distance metric
     }
 
+
     # Create a GridSearchCV object with cross-validation
-    grid_search = GridSearchCV(pipeline, param_grid, cv=5, n_jobs=-1, scoring='accuracy')
+    grid_search = GridSearchCV(model, param_grid, cv=folds, n_jobs=-1, scoring=metric, refit=True, return_train_score=True)
 
     # Fit the model on the training data
     grid_search.fit(X_train, y_train)
 
-    ML_model,metric = select_model(model)
-    ML_model.fit(X_train,y_train)
-    y_pred_train = ML_model.predict(X_train)
-    y_pred_test = ML_model.predict(X_test)
-    train_metric = metric(y_pred_train,y_train)
-    test_metric = metric(y_pred_test,y_test)
     
-    return model, train_metric, test_metric
+    # Evaluate the model on the test set
+    test_score = grid_search.score(X_test, y_test)
+    
+    return grid_search.best_estimator_, grid_search.best_params_, grid_search.best_score_, test_metric
 
 
-def ML_Pipeline(ML_task,df,features,target,test_split,seed):
+def ML_Pipeline(ML_task,df,features,target,train_test_split, models):
     X = df.loc[features]
-    y = df.loc[target]
-    
+    y = df.loc[target]      
 
-    X_train, X_test, y_train, y_test = train_test_split(X,y,shuffle=True,test_split=test_split, random_state=seed)
-    
-    # imputation and scaling 
-    
-    
-    if ML_task == "Classification":
-        models = models("Classification")
-    else: 
-        models = models("Regression")
-    
     stats = np.zeros(size=(2,len(models)))
     hyperparams = []
     trained_models = []
 
     for i,model in enumerate(models):
-        train_metric,test_metric,model = train_model(model,X_train,X_test,y_train,y_test)
+        train_metric,test_metric,model = train_model(model, train_test_split)
         stats[0,i] = train_metric
         stats[1,i] = test_metric
         trained_models.append(model)
