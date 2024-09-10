@@ -313,11 +313,6 @@ if f:
         metric = st.selectbox(label="performance metric",options=metric_options,index=0)
 
 
-
-def start_ML_Pipeline():
-    #TODOs
-    pass
-
 def check_JSON_validity():
     #TODO
     if conf is None:
@@ -387,11 +382,25 @@ if f:
             st.error("Your Configuration file is errorneous")
         elif not st.session_state.json_checked:
             st.warning("Your Configuration file is unchecked.")
-        submit_side, download_conf_side = st.columns(2)
+        submit_side,preprocess_side,download_conf_side = st.columns(3)
         with submit_side:
             if st.button("Start ML Pipeline"):
-                start_ML_Pipeline(conf)
+                stats,trained_models, params_trained_models = be.start_ML_Pipeline(conf)
+        with preprocess_side:
+            #TODO
+            st.write("Wait for preprocess to uncomment")
+            #st.download_button(label="Download configuration",data=be.preprocess_data(df,conf).to_csv(),file_name="processed_data.csv")
         with download_conf_side:
-            st.sidebar.download_button(label="Download configuration",data=conf,file_name="configuration.json")
+            st.download_button(label="Download configuration",data=conf,file_name="configuration.json")
             
 #Add datavisalisation
+stats = False
+##Iced Matcha LAtte audio
+# Load an audio file from local or URL
+audio_file = open("./music/Bauch_Beine_Po.mp3", 'rb')
+audio_bytes = audio_file.read()
+# Play the audio file
+st.audio(audio_bytes, format='audio/mp3')
+
+if stats:
+    pass
