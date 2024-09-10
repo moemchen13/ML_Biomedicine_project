@@ -326,14 +326,14 @@ def create_JSON():
     configuration["Models"] = dict()
     configuration["Training"] = dict()
     for model_name, (model_type,model) in zip(st.session_state.model_names,zip(st.session_state.model_type,st.session_state.models)):
-        configuration["Models"]["name"] = model_name
-        configuration["Models"]["model_type"] = model_type
-        configuration["Models"]["params"] = model
+        configuration["Models"][model_name] = dict()
+        configuration["Models"][model_name]["model_type"] = model_type
+        configuration["Models"][model_name]["params"] = model
 
     for run_name,(run_model_type,run) in zip(st.session_state.run_names,zip(st.session_state.run_model_type,st.session_state.runs)):
-        configuration["Runs"]["name"] = run_name
-        configuration["Runs"]["model_type"] = model_type
-        configuration["Runs"]["params"] = run
+        configuration["Runs"][run_name] = dict()
+        configuration["Runs"][run_name]["model_type"] = model_type
+        configuration["Runs"][run_name]["params"] = run
 
     configuration["Training"]["is_regression"] = st.session_state.task
     configuration["Training"]["CV"] = st.session_state.use_cv
