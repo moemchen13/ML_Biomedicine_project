@@ -27,9 +27,15 @@ if "k_fold" not in st.session_state:
 if "metric" not in st.session_state:
     st.session_state["metric"] = None
 if "json_valid" not in st.session_state:
-    st.session_state["json_valid"] =False
+    st.session_state["json_valid"] = False
 if "json_checked" not in st.session_state:
-    st.session_state["json_checked"]=False
+    st.session_state["json_checked"] = False
+if "target" not in st.session_state:
+    st.session_state["Target"] = ""
+if "target" not in st.session_state:
+    st.session_state["Seed"] = None
+if "train_test_split" not in st.session_state:
+    st.session_state["train_test_split"] = 0.2
 
 
 metric = None
@@ -81,11 +87,14 @@ if f:
     targ,seed,train_test = st.columns(3)
     with targ:
         target = st.selectbox("Select target variable",df.columns,index=len(df.columns)-1)
-        possible_features = df.columns.drop(target)
+        #possible_features = df.columns.drop(target)
+        st.session_state.target = target
     with seed:
         seed = st.number_input("Set seed",value = 42,step=1,min_value=1,max_value=None)
+        st.session_state.seed = seed
     with train_test:
         train_test_split = st.number_input("relative size of test set",value = 0.2,step=0.01,min_value=0.01,max_value=0.99)
+        st.session_state.train_test_split = train_test_split
     
     imput,scale = st.columns(2)
     with imput:
@@ -336,6 +345,10 @@ def create_JSON():
     if st.session_state.use_cv:
         configuration["Training"]["k_fold"] = st.session_state.k_fold
     configuration["Training"]["metric"] = st.session_state.metric
+    configuration["Training"]["target"] = st.session_state.target
+    configuration["Training"]["seed"] = st.session_state.seed
+    configuration["Training"]["train_test_split"] = st.session_state.train_test_split
+    
     conf = json.dumps(configuration)
 
 
@@ -347,6 +360,10 @@ def process_JSON():
     st.session_state.metric = json_data["Training"]["metric"] 
     st.session_state.use_cv = json_data["Training"]["CV"] 
     st.session_state.k_fold = json_data["Training"]["k_fold"]
+    st.session_state.target = json_data["Training"]["target"] 
+    st.session_state.seed = json_data["Training"]["seed"]
+    st.session_state.train_test_split =json_data["Training"]["train_test_split"]
+
     for model in json_data["Models"].items():
         st.session_state.models.append(model["params"])
         st.session_state.model_type.append(model["model_type"])
