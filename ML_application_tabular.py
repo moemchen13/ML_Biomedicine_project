@@ -6,18 +6,30 @@ import json
 st.set_page_config(page_title="ML Tabular data site", layout="wide")
 st.title("Welcome to the your online Machine learning side")
 
-st.session_state.runs = []
-st.session_state.run_model_type = []
-st.session_state.run_names = []
-st.session_state.models = []
-st.session_state.model_type = []
-st.session_state.model_names = []
-st.session_state.task = True
-st.session_state.use_cv = False
-st.session_state.k_fold = 5
-st.session_state.metric = None
-st.session_state.json_valid=False
-st.session_state.json_checked=False
+if "runs" not in st.session_state:
+    st.session_state["runs"] = []
+if "run_model_type" not in st.session_state:
+    st.session_state["run_model_type"] = []
+if "run_names" not in st.session_state:
+    st.session_state["run_names"] = []
+if "models" not in st.session_state:
+    st.session_state["models"] = []
+if "model_type" not in st.session_state:
+    st.session_state["model_type"] = []
+if "model_names" not in st.session_state:
+    st.session_state["model_names"] = []
+if "task" not in st.session_state:
+    st.session_state["task"] = True
+if "use_cv" not in st.session_state:
+    st.session_state["use_cv"] = False
+if "k_fold" not in st.session_state:
+    st.session_state["k_fold"] = 5
+if "metric" not in st.session_state:
+    st.session_state["metric"] = None
+if "json_valid" not in st.session_state:
+    st.session_state["json_valid"] =False
+if "json_checked" not in st.session_state:
+    st.session_state["json_checked"]=False
 
 
 metric = None
@@ -96,7 +108,6 @@ param_grid_ridge = {
     'alpha': [int, [0.01, 100.0,0.01]],
     'solver': [str,['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga']],
     'max_iter': [int, [1000, 10000,100]],
-    'tol': [int,[1e-3, 1e-5,1e-3]]
 }
 
 param_grid_logistic = {
@@ -104,7 +115,6 @@ param_grid_logistic = {
     'C': [int, [0.01, 100.0,0.01]],
     'solver': [str,['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']],
     'max_iter': [int, [100, 1000,10]],
-    'tol': [int,[1e-3, 1e-5,1e-3]],
     'l1_ratio': [int,[0.1,0.9,0.1]]  # Only used if penalty is 'elasticnet'
 }
  
@@ -148,7 +158,7 @@ def run(model_type,param_dict):
     #grid search limit sleection
     for param_name, options in param_dict.items():
         #use_param = st.markdown(f"Limit {param_name} in Grid search")
-        grid_search_options = select_grid_search_range(param_name,options)
+        grid_search_options = select_grid_search_range(model_type,param_name,options)
         run["params"][param_name] = grid_search_options
 
     name_side, add_side,delete_side = st.columns(3,vertical_alignment="bottom")
@@ -156,13 +166,13 @@ def run(model_type,param_dict):
         run["name"] = st.text_input(label="run name",value="",key="name"+model_type,placeholder="Name your run here")
     with add_side:
         #might need a st.form_submit_button instead
-        if st.button(label= f"Add {run['name']} search",key="add"+model_type,disabled= run["name"]==""):
+        if st.button(label= f"Add {run['name']} search",key="add_run"+model_type,disabled= run["name"]==""):
             st.session_state.run_names.append(run["name"])
             st.session_state.runs.append(run["params"])
             st.session_state.run_model_type.append(model_type)
             st.toast("Added run 🐕")
     with delete_side:
-        if st.button(label= f"Delete run: {run['name']}",key="add"+model_type,disabled= run["name"]==""):
+        if st.button(label= f"Delete run: {run['name']}",key="delete_run"+model_type,disabled= run["name"]==""):
             for i,run_name in enumerate(st.session_state.run_names):
                 if run_name == run["name"]:
                     st.toast(f"Run {run['name']} deleted")
@@ -177,7 +187,7 @@ def model(model_type,param_dict):
     model["params"]= dict()
     for param_name, options in param_dict.items():
                 #st.markdown(f"{param_name}")
-                value = select_hyperparam_values(param_name,options)
+                value = select_hyperparam_values(model_type,param_name,options)
                 model["params"][param_name] = value
 
 
@@ -191,6 +201,7 @@ def model(model_type,param_dict):
             st.session_state.model_names.append(model["name"])
             st.session_state.models.append(model["params"])
             st.session_state.model_type.append(model_type)
+            print(st.session_state.model_names)
             st.toast("Added model 🥳")
 
     with delete_side:
@@ -234,7 +245,7 @@ def select_hyperparam_values(model_type,name,hyperparam):
 
 
 
-def select_grid_search_range(model_typename,hyperparam):
+def select_grid_search_range(model_type,name,hyperparam):
     dtype = hyperparam[0]
     if dtype==bool:
         options = st.multiselect(label=f"Do you want to restrict {name}",key="bool_select"+model_type+name, options=["True","False"],default=["True","False"])        
@@ -266,7 +277,6 @@ else:
     models = ["Logistic Regression", "Decision Tree", "Random Forest Classificator"]
     log_reg, dec_tree, ran_for = st.tabs(models)
     
-    name=""
     with log_reg:
         selection_wrapper(models[0],param_grid_logistic)
     with dec_tree:
@@ -314,12 +324,12 @@ def create_JSON():
     for model_name, (model_type,model) in zip(st.session_state.model_names,zip(st.session_state.model_type,st.session_state.models)):
         configuration["Models"]["name"] = model_name
         configuration["Models"]["model_type"] = model_type
-        configuration["Models"]["params"] = model["params"]
+        configuration["Models"]["params"] = model
 
     for run_name,(run_model_type,run) in zip(st.session_state.run_names,zip(st.session_state.run_model_type,st.session_state.runs)):
         configuration["Runs"]["name"] = run_name
         configuration["Runs"]["model_type"] = model_type
-        configuration["Runs"]["params"] = run["params"]
+        configuration["Runs"]["params"] = run
 
     configuration["Training"]["is_regression"] = st.session_state.task
     configuration["Training"]["CV"] = st.session_state.use_cv
