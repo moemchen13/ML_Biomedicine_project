@@ -1,20 +1,16 @@
-import streamlit as st
-from streamlit_timeline import timeline
 import json
+import os
 import numpy as np
-from datetime import datetime, timedelta
 import pandas as pd
-from ydata_profiling import ProfileReport
-from streamlit_pandas_profiling import st_profile_report
-import plotly.express as px
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, LabelEncoder
+from sklearn.impute import SimpleImputer
+import joblib
 
-
-# read in files as pandas dataframe
 def return_df(file):
     name = file.name
     extension = name.split(".")[-1]
@@ -30,15 +26,6 @@ def return_df(file):
         df = pd.read_xml(name)
     return df
 
-def models(ML_task):
-    if ML_task == "Classification":
-        return ["Logistic Regression", "Decision Tree", "Random Forest"]
-    elif ML_task == "Regression":
-        return ["Linear Regression", "Regression Tree", "Ridge Regression"]
-
-
-
-# select machine lernning model
 def select_model(model):
     if model=="Logistic Regression":
         ML_model = LogisticRegression()
@@ -55,82 +42,118 @@ def select_model(model):
     elif model == "Random Forest Regressor":
         ML_model = RandomForestRegressor()
     return ML_model
+
+def save_model(model, model_name, folder_name='saved_models'):
+    # Create the folder if it doesn't exist
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    # Define the file path
+    file_path = os.path.join(folder_name, model_name + '.pkl')
+
+    # Save the model using joblib
+    joblib.dump(model, file_path)
+    print(f"Model saved at: {file_path}")
+    
+
+# Custom imputation using random values between min and max for each column
+def random_impute(X):
+    for i in range(X.shape[1]):
+        col = X[:, i]
+        missing = np.isnan(col)
+        col_min, col_max = np.nanmin(col), np.nanmax(col)
+        col[missing] = np.random.uniform(col_min, col_max, size=missing.sum())
+    return X
         
+def clean_data(X, imputation_strategy='most_frequent', scaling_method='minmax'):
+    # Separate numerical and non-numerical columns
+    numerical_cols = X.select_dtypes(include=[np.number]).columns
+    categorical_cols = X.select_dtypes(exclude=[np.number]).columns
 
-["Linear Regression", "Regression Tree", "Ridge Regression","Random Forest Regressor"]
+    # Handle missing values based on the chosen imputation strategy
+    if imputation_strategy in ['mean', 'median','most_frequent']:
+        imputer = SimpleImputer(strategy=imputation_strategy)
+        X_imputed = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+    elif imputation_strategy == 'random':        
+        X_imputed = random_impute(X.copy())  # Apply random imputation before scaling
+    else:
+        raise ValueError("Invalid imputation strategy. Choose 'mean', 'median', 'most_frequent' or 'random'.")
+    
+    # Encode non-numerical columns with integer encoding
+    X_imputed[categorical_cols] = X_imputed[categorical_cols].apply(LabelEncoder().fit_transform)
 
 
-# checks if the chosen model is suited for the desired task
-def check_options_for_validity(task,reg_models,clas_models):
-    is_valid=True
-    submit_message = "Options are well choosen"
-    if task=="Regression​" and reg_models==[]:
-        is_valid = False
-        submit_message = "Select Regression model(s)"
-    if task=="Classification" and clas_models==[]:
-        is_valid = False
-        submit_message = "Select Classification model(s)"
+    # Apply scaling based on the chosen scaling method
+    if scaling_method == 'minmax':
+        scaler = MinMaxScaler()
+    elif scaling_method == 'standard':
+        scaler = StandardScaler()
+    else:
+        raise ValueError("Invalid scaling method. Choose 'minmax' or 'standard'.")
+    
+    # Fit and transform the data
+    X_scaled = scaler.fit_transform(X_imputed)
+    X_cleaned = pd.DataFrame.from_records(data=X_scaled, columns=X.columns)
+    return X_cleaned
 
-    return is_valid,submit_message
-
-def check_data_submission_for_task(ML_task,df,feature_selection,target):
-    is_valid = True
-    submit_message = "Submission was successfull!"
-    is_numeric = pd.api.types.is_numeric_dtype(df.loc[target])
-    if ML_Task=="Regression​" and not is_numeric:
-        submit_message = "Regression target is not a number"
-        is_valid=False
-    return is_valid, submit_message
-
-def train_model(model, train_test_split, metric):
-    update_events("Model training has started",f"{model} is trained and evaluated")
+def train_model(model, train_test_split, train_config):
     
     X_train, X_test, y_train, y_test = train_test_split
-    folds = 5
-    metric = "accuracy"
-    param_grid = {
-        'knn__n_neighbors': [3, 5, 7, 9],  # Number of neighbors
-        'knn__weights': ['uniform', 'distance'],  # Weight function used in prediction
-        'knn__metric': ['euclidean', 'manhattan', 'minkowski']  # Distance metric
-    }
-
-
-    # Create a GridSearchCV object with cross-validation
-    grid_search = GridSearchCV(model, param_grid, cv=folds, n_jobs=-1, scoring=metric, refit=True, return_train_score=True)
-
-    # Fit the model on the training data
-    grid_search.fit(X_train, y_train)
-
-    
-    # Evaluate the model on the test set
-    test_score = grid_search.score(X_test, y_test)
-    
-    return grid_search.best_estimator_, grid_search.best_params_, grid_search.best_score_, test_metric
-
-
-def ML_Pipeline(ML_task,df,features,target,train_test_split, models):
-    X = df.loc[features]
-    y = df.loc[target]      
-
-    stats = np.zeros(size=(2,len(models)))
-    hyperparams = []
-    trained_models = []
-
-    for i,model in enumerate(models):
-        train_metric,test_metric,model = train_model(model, train_test_split)
-        stats[0,i] = train_metric
-        stats[1,i] = test_metric
-        trained_models.append(model)
-    return stats, trained_models,hyperparams
-
-def get_best_model(ML_task,metric,models,reg_models,clas_models):
-    if ML_task == "Classification":
-        index = np.argmax(metric[1,:])
-        best_value = np.max(metric[1,:])
-        model= clas_models[index]
+    param_grid = model["params"]
+    method = select_model(model["model_type"])
+    metric = train_config["metric"]
+    folds = train_config["CV"]
+    if folds == False:
+        folds = None 
+        
+    if "n_iter" in model.keys():
+        # Create a RandomizedSearch object with cross-validation    
+        searchCV = RandomizedSearchCV(method, param_grid, n_iter=model["n_iter"], cv=folds, n_jobs=-1, scoring=metric, random_state=train_config["seed"], return_train_score=True)
     else:
-        index = np.argmin(metric[1,:])
-        best_value = np.min(metric[1,:])
-        model= clas_models[index]
+        for p in param_grid:
+            if not isinstance(param_grid[p], list):
+                param_grid[p] = [param_grid[p]]
+        searchCV = GridSearchCV(method, param_grid, cv=folds, n_jobs=-1, scoring=metric, return_train_score=True)
+    
+    # Fit the model on the training data
+    searchCV.fit(X_train, y_train)
+    
+    # Test model on test dataset
+    test_score =  searchCV.score(X_test, y_test)
+    
+    return searchCV.best_estimator_, searchCV.best_params_, searchCV.best_score_, searchCV.cv_results_, test_score
 
+
+def ML_Pipeline(data, json_config):
+    with open(json_config) as json_data:
+        config = json.load(json_data)
+    
+    models = {**config["Runs"], **config["Models"]}
+    train_config = config["Training"]
+
+    target = train_config["target"]
+    
+    df = clean_data(data)
+    X = df.drop(target, axis=1)
+    y = df[target]
+    
+    data_split = train_test_split(X, y, test_size = train_config['train_test_split'], shuffle=True, random_state=train_config['seed'])
+    
+    stats = []
+    hyperparams = []
+    trained_models = []     
+
+    for model in enumerate(models):
+        trained_model, best_params, val_score, cv_results, test_score= train_model(models[model[1]], data_split, train_config)
+        
+        s = {"validation_score": val_score, "cv_summary": pd.DataFrame(cv_results)}
+        stats.append(s)
+        trained_models.append(trained_model)
+        hyperparams.append(best_params)
+    return stats, trained_models, hyperparams
+
+def get_best_model(stats, trained_models):
+    index = np.argmin(stats[1,:])
+    best_value = np.min(stats[1,:])
+    model= trained_models[index]
     return model,best_value,index
