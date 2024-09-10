@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
 from sklearn import tree
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 
 # read in files as pandas dataframe
@@ -41,23 +41,23 @@ def models(ML_task):
 # select machine lernning model
 def select_model(model):
     if model=="Logistic Regression":
-        metric = accuracy_score
         ML_model = LogisticRegression()
     elif model == "Decision Tree":
-        metric = accuracy_score
         ML_model = tree.DecisionTreeClassifier()
-    elif model == "Random Forest":
-        metric = accuracy_score
+    elif model == "Random Forest Classificator":
         ML_model = RandomForestClassifier()
     elif model == "Linear Regression":
-        metric = mean_squared_error
         ML_model = LinearRegression()
     elif model == "Regression Tree":
-        metric = mean_squared_error
         ML_model = tree.DecisionTreeRegressor()
     elif model == "Ridge Regression":
-        metric = mean_squared_error
         ML_model = Ridge()
+    elif model == "Random Forest Regressor":
+        ML_model = RandomForestRegressor()
+    return ML_model
+        
+
+["Linear Regression", "Regression Tree", "Ridge Regression","Random Forest Regressor"]
 
 
 # checks if the chosen model is suited for the desired task

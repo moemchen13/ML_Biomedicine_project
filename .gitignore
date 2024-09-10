@@ -3,3 +3,4 @@
 ./saved_models/*
 ./model_file_name.pkl
 model_file_name.pkl
+configuration.json
