@@ -2,6 +2,7 @@ import streamlit as st
 import backend_ML as be
 import time
 import json
+import base64
 
 st.set_page_config(page_title="ML Tabular data site", layout="wide")
 st.title("Welcome to the your online Machine learning side")
@@ -113,6 +114,7 @@ param_grid_decision_tree_regression = {
     'splitter': [str,['best', 'random']],  # Strategy to split at each node
 }
 
+
 param_grid_ridge = {
     'alpha': [int, [0.01, 100.0,0.01]],
     'solver': [str,['auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga']],
@@ -163,7 +165,7 @@ param_grid_random_forest_classifier = {
 def run(model_type,param_dict):
     run = {}
     run["params"] = dict()
-    run["params"]["nModels_search"] = st.number_input(label="Number of models to train",key="nModels"+model_type,min_value=1,max_value=10,value=5,step=1)
+    run["params"]["n_iter"] = st.number_input(label="Number of models to train",key="nModels"+model_type,min_value=1,max_value=10,value=5,step=1)
     #grid search limit sleection
     for param_name, options in param_dict.items():
         #use_param = st.markdown(f"Limit {param_name} in Grid search")
@@ -189,6 +191,25 @@ def run(model_type,param_dict):
                     st.session_state.runs.remove(i)
                     st.session_state.run_model_type.remove(i)
                     break
+
+
+def audio_autoplay(file):
+    audio_file = open(file, 'rb')
+    audio_bytes = audio_file.read()
+
+    # Convert the audio bytes into a base64 string to embed it in HTML
+    audio_base64 = base64.b64encode(audio_bytes).decode()
+
+    # Define HTML for autoplay audio
+    audio_html = f"""
+        <audio autoplay>
+        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+        Your browser does not support the audio element.
+        </audio>
+        """
+
+    # Embed the HTML into Streamlit
+    st.components.v1.html(audio_html, height=100)
 
 
 def model(model_type,param_dict):
@@ -249,7 +270,7 @@ def select_hyperparam_values(model_type,name,hyperparam):
         min_v = hyperparam[1][0]
         max_v = hyperparam[1][1]
         step_size = hyperparam[1][2]
-        value = st.slider(label=f"Set parameter {name}",key="number"+model_type+name,min_value=min_v, max_value=max_v, value=[min_v], step=step_size)
+        value = st.slider(label=f"Set parameter {name}",key="number"+model_type+name,min_value=min_v, max_value=max_v, value=min_v, step=step_size)
     return value
 
 
@@ -274,7 +295,7 @@ if task_is_regression:
     lin_reg, reg_tree, rid_reg,rf_reg = st.tabs(models)
     
     with lin_reg:
-        selection_wrapper(models[0],example_param_dict)
+        selection_wrapper(models[0],{})
     with reg_tree:
         selection_wrapper(models[1],param_grid_decision_tree_regression)
     with rid_reg:
@@ -395,12 +416,29 @@ if f:
             
 #Add datavisalisation
 stats = False
+
 ##Iced Matcha LAtte audio
-# Load an audio file from local or URL
-audio_file = open("./music/Bauch_Beine_Po.mp3", 'rb')
+#audio_autoplay("./music/Bauch_Beine_Po.mp3")
+
+audio_file = open('./music/Bauch_Beine_Po.mp3', 'rb')
 audio_bytes = audio_file.read()
-# Play the audio file
-st.audio(audio_bytes, format='audio/mp3')
+
+audio_base64 = base64.b64encode(audio_bytes).decode()
+
+# Define HTML for autoplay audio
+audio_html = f"""
+    <audio autoplay loop>
+    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+    Your browser does not support the audio element.
+    </audio>
+    """
+
+# Embed the HTML into Streamlit
+st.components.v1.html(audio_html, height=100)
+
+
+
+
 
 if stats:
     pass
