@@ -172,6 +172,10 @@ def audio_autoplay(file):
     st.components.v1.html(audio_html, height=100)
 
 
+def updated_json():
+    st.session_state.json_valid = False
+    st.session_state.json_checked = False
+
 
 def run(model_type,param_dict):
     run = {}
@@ -192,12 +196,14 @@ def run(model_type,param_dict):
         if st.button(label= f"Add {run['name']} search",key="add_run"+model_type,disabled= run["name"]==""):
             st.session_state.runs.append(run)
             st.toast("Added run 🐕")
+            updated_json()
     with delete_side:
         if st.button(label= f"Delete run: {run['name']}",key="delete_run"+model_type,disabled= run["name"]==""):
             for i,run_name in enumerate(st.session_state.runs):
                 if run_name["name"] == run["name"]:
-                    st.toast(f"Run {run['name']} deleted")
                     st.session_state.runs.remove(i)
+                    st.toast(f"Run {run['name']} deleted")
+                    updated_json()
                     break
 
 
@@ -220,13 +226,15 @@ def model(model_type,param_dict):
         if st.button(label= f"Add {model['name']}",key="add_model"+model_type,disabled = model["name"]==""):
             st.session_state.models.append(model)
             st.toast("Added model 🥳")
+            updated_json()
 
     with delete_side:
         if st.button(label = f"Delete model {model['name']}",key="delete"+model_type,disabled = model["name"]==""):
             for i,run_name in enumerate(st.session_state.model_names):
                 if model_name["name"] == model["name"]:
-                    st.toast(f"Model {model['name']} deleted")
                     st.session_state.models.remove(i)
+                    st.toast(f"Model {model['name']} deleted")
+                    updated_json()
                     break
 
 
@@ -342,6 +350,7 @@ def create_JSON():
         configuration["Runs"][run_name] = dict()
         configuration["Runs"][run_name]["model_type"] = run["model_type"]
         configuration["Runs"][run_name]["params"] = run["params"]
+        configuration["Runs"][run_name]["n_iter"] = run["n_iter"]
 
     configuration["Training"]["is_regression"] = st.session_state.task
     configuration["Training"]["CV"] = st.session_state.use_cv
@@ -375,6 +384,7 @@ def process_JSON():
     for run_name,run in json_data["Runs"].items():
         new_dict_run = run
         new_dict_run["name"] = run_name
+
         st.session_state.runs.append(new_dict_run)
 
 
