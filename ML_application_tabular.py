@@ -63,7 +63,7 @@ param_grid_random_forest_classifier = {
 
 
 
-def audio_button(label,file,func,args,loop=True, start=0,):
+def audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3",loop=True, start=0,):
     """
     Function to create a button that plays audio and runs a custom function.
     """
@@ -80,7 +80,7 @@ def audio_button(label,file,func,args,loop=True, start=0,):
         
         # Define the HTML for the audio player with start time and optional loop
         audio_html = f"""
-            <audio id="audio-player" autoplay {loop_attribute}>
+            <audio id="audio-player" autoplay {loop_attribute} hidden>
                 <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
                 Your browser does not support the audio element.
             </audio>
@@ -91,8 +91,9 @@ def audio_button(label,file,func,args,loop=True, start=0,):
             </script>
         """
         # Embed the HTML into Streamlit
-        st.components.v1.html(audio_html, height=100)
-        func(*args)
+        st.components.v1.html(audio_html, height=10)
+    return True
+        
 
 
 def updated_json():
@@ -420,10 +421,11 @@ if st.session_state.json_valid:
     create_JSON()
     submit_side,preprocess_side,download_conf_side = st.columns(3)
     with submit_side:
-        if st.button("START ML Pipeline"):
-        #if audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3",print,"AAAAAAAAAAAA"):
-            print("aaaa")
+        #if st.button("START ML Pipeline"):
+        if audio_button(label="Start ML Pipeline"):
+            print("aaaaahhhhh")
             stats,trained_models, params_trained_models = be.start_ML_Pipeline(conf)
+            
     with preprocess_side:
         #TODO
         st.write("Wait for preprocess to uncomment")
