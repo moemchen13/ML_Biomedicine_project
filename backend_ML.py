@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
 import joblib
+import ast
 
 def return_df(file):
     name = file.name
@@ -125,8 +126,7 @@ def train_model(model, train_test_split, train_config):
 
 
 def ML_Pipeline(data, json_config):
-    with open(json_config) as json_data:
-        config = json.load(json_data)
+    config = json.loads(json_config)
     
     models = {**config["Runs"], **config["Models"]}
     train_config = config["Training"]
