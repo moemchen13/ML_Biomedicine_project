@@ -4,97 +4,6 @@ import time
 import json
 import base64
 
-st.set_page_config(page_title="ML Tabular data site", layout="wide")
-st.title("Welcome to the your online Machine learning side")
-
-if "runs" not in st.session_state:
-    st.session_state["runs"] = []
-if "models" not in st.session_state:
-    st.session_state["models"] = []
-if "task" not in st.session_state:
-    st.session_state["task"] = True
-if "use_cv" not in st.session_state:
-    st.session_state["use_cv"] = False
-if "k_fold" not in st.session_state:
-    st.session_state["k_fold"] = 5
-if "metric" not in st.session_state:
-    st.session_state["metric"] = None
-if "json_valid" not in st.session_state:
-    st.session_state["json_valid"] = False
-if "json_checked" not in st.session_state:
-    st.session_state["json_checked"] = False
-if "target" not in st.session_state:
-    st.session_state["Target"] = ""
-if "target" not in st.session_state:
-    st.session_state["Seed"] = None
-if "train_test_split" not in st.session_state:
-    st.session_state["train_test_split"] = 0.2
-
-
-metric = None
-use_cv = False
-k_fold = 5
-
-data_uploader, conf_uploader = st.columns([0.6,0.2],vertical_alignment="top")
-with data_uploader:
-    f = st.file_uploader("Please upload the dataset you want to analyse with Machine learning models")
-    if f:
-        df = be.return_df(f)
-        st.success("File uploaded")
-        df = st.data_editor(df)
-
-
-with conf_uploader:
-    st.write("")
-    st.write("")
-    st.write("")
-    with st.popover("Upload \n config"):
-        conf = st.file_uploader("config json")
-        if conf:
-            config = be.return_df(conf)
-            st.success("Uploaded config file")
-            process_JSON()
-            
-
-#summary stats
-
-st.divider()
-st.markdown("Select task")
-clas,tog,reg = st.columns(3)
-
-with tog:
-        task_is_regression = st.toggle("")
-with clas:
-    if task_is_regression:
-        st.markdown("Classification")
-    else:
-        st.markdown(":blue[Classification]")
-with reg:
-    if task_is_regression:
-        st.markdown(":red[Regression]")
-    else:
-        st.markdown("Regression")
-st.session_state.task = task_is_regression
-
-if f:
-    targ,seed,train_test = st.columns(3)
-    with targ:
-        target = st.selectbox("Select target variable",df.columns,index=len(df.columns)-1)
-        #possible_features = df.columns.drop(target)
-        st.session_state.target = target
-    with seed:
-        seed = st.number_input("Set seed",value = 42,step=1,min_value=1,max_value=None)
-        st.session_state.seed = seed
-    with train_test:
-        train_test_split = st.number_input("relative size of test set",value = 0.2,step=0.01,min_value=0.01,max_value=0.99)
-        st.session_state.train_test_split = train_test_split
-    
-    imput,scale = st.columns(2)
-    with imput:
-        data_imputation = st.selectbox("Replace missing data with",options=["mean","median","random"],index=0)
-    with scale: 
-        data_scaling = st.selectbox("Scaling",options=["No scaling","min_max scaling","standardising","0-1-standardizing"],index=0)
-
 
 # Modelselection methods
 param_grid_decision_tree_regression = {
@@ -126,7 +35,7 @@ param_grid_random_forest_regressor = {
     'max_depth': [int,[5, 10, 15, 50]],
     'min_samples_split': [int,[2, 20,1]],
     'min_samples_leaf': [int,[1, 10,1]],
-    'max_features': [str,['auto', 'sqrt', 'log2']],
+    'max_features': [str,['sqrt', 'log2']],
     'bootstrap': [bool,[True, False]],
     'criterion': [str,['squared_error', 'absolute_error', 'poisson']]
 }
@@ -147,29 +56,42 @@ param_grid_random_forest_classifier = {
     'max_depth': [int, [1, 20, 1]],
     'min_samples_split': [int, [2, 10, 3]],
     'min_samples_leaf': [int, [1, 4, 1]],
-    'max_features': [str, ['auto', 'sqrt', 'log2']],
+    'max_features': [str, ['sqrt', 'log2']],
     'bootstrap': [bool, [True, False]],
     'criterion': [str, ['gini', 'entropy', 'log_loss']],
 }
 
 
-def audio_autoplay(file):
-    audio_file = open(file, 'rb')
-    audio_bytes = audio_file.read()
 
-    # Convert the audio bytes into a base64 string to embed it in HTML
+def audio_button(label,file,loop=True, start=0):
+    """
+    Function to create a button that plays audio and runs a custom function.
+    """
+    # Read the file bytes
+    with open(file, 'rb') as audio_file:
+        audio_bytes = audio_file.read()
+
+    # Convert the audio bytes into a base64 string to embed in HTML
     audio_base64 = base64.b64encode(audio_bytes).decode()
-
-    # Define HTML for autoplay audio
-    audio_html = f"""
-        <audio autoplay>
-        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-        Your browser does not support the audio element.
-        </audio>
+    # Conditionally add the `loop` attribute
+    loop_attribute = "loop" if loop else ""
+    # Button to trigger both audio playback and the custom function
+    if st.button(label):
+        
+        # Define the HTML for the audio player with start time and optional loop
+        audio_html = f"""
+            <audio id="audio-player" autoplay {loop_attribute}>
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                Your browser does not support the audio element.
+            </audio>
+            <script>
+                var audio = document.getElementById("audio-player");
+                audio.currentTime = {start};
+                audio.play();
+            </script>
         """
-
-    # Embed the HTML into Streamlit
-    st.components.v1.html(audio_html, height=100)
+        # Embed the HTML into Streamlit
+        st.components.v1.html(audio_html, height=100)
 
 
 def updated_json():
@@ -282,6 +204,163 @@ def select_grid_search_range(model_type,name,hyperparam):
     return options
 
 
+def check_JSON_validity():
+    #TODO
+    if conf is None:
+        create_JSON()
+    st.session_state.json_valid=True
+
+def create_JSON():
+    global conf
+    configuration = dict()
+    configuration["Runs"] = dict()
+    configuration["Models"] = dict()
+    configuration["Training"] = dict()
+    for model in st.session_state.models:
+        model_name = model["name"]
+        configuration["Models"][model_name] = dict()
+        configuration["Models"][model_name]["model_type"] = model["model_type"]
+        configuration["Models"][model_name]["params"] = model["params"]
+
+    for run in st.session_state.runs:
+        run_name = run["name"]
+        configuration["Runs"][run_name] = dict()
+        configuration["Runs"][run_name]["model_type"] = run["model_type"]
+        configuration["Runs"][run_name]["params"] = run["params"]
+        configuration["Runs"][run_name]["n_iter"] = run["n_iter"]
+
+    configuration["Training"]["is_regression"] = st.session_state.task
+    configuration["Training"]["CV"] = st.session_state.use_cv
+    if st.session_state.use_cv:
+        configuration["Training"]["k_fold"] = st.session_state.k_fold
+    configuration["Training"]["metric"] = st.session_state.metric
+    configuration["Training"]["target"] = st.session_state.target
+    configuration["Training"]["seed"] = st.session_state.seed
+    configuration["Training"]["train_test_split"] = st.session_state.train_test_split
+    
+    conf = json.dumps(configuration)
+
+
+def process_JSON(file):
+    json_file = open(file.name)
+    json_str = json_file.read()
+    json_data = json.loads(json_str)
+    st.session_state.metric = json_data["Training"]["metric"] 
+    st.session_state.use_cv = json_data["Training"]["CV"] 
+    if json_data["Training"]["CV"]:
+        st.session_state.k_fold = json_data["Training"]["k_fold"]
+    st.session_state.target = json_data["Training"]["target"] 
+    st.session_state.seed = json_data["Training"]["seed"]
+    st.session_state.train_test_split =json_data["Training"]["train_test_split"]
+
+    for model_name,model in json_data["Models"].items():
+        new_dict_model = model
+        new_dict_model["name"] = model_name
+        st.session_state.models.append(new_dict_model)
+        
+    for run_name,run in json_data["Runs"].items():
+        new_dict_run = run
+        new_dict_run["name"] = run_name
+
+        st.session_state.runs.append(new_dict_run)
+
+
+def check_JSON():
+    check_JSON_validity()
+    st.session_state.json_checked=True
+
+
+st.set_page_config(page_title="ML Tabular data site", layout="wide")
+st.title("Welcome to the your online Machine learning side")
+
+if "runs" not in st.session_state:
+    st.session_state["runs"] = []
+if "models" not in st.session_state:
+    st.session_state["models"] = []
+if "task" not in st.session_state:
+    st.session_state["task"] = True
+if "use_cv" not in st.session_state:
+    st.session_state["use_cv"] = False
+if "k_fold" not in st.session_state:
+    st.session_state["k_fold"] = 5
+if "metric" not in st.session_state:
+    st.session_state["metric"] = None
+if "json_valid" not in st.session_state:
+    st.session_state["json_valid"] = False
+if "json_checked" not in st.session_state:
+    st.session_state["json_checked"] = False
+if "target" not in st.session_state:
+    st.session_state["Target"] = ""
+if "target" not in st.session_state:
+    st.session_state["Seed"] = None
+if "train_test_split" not in st.session_state:
+    st.session_state["train_test_split"] = 0.2
+
+
+metric = None
+use_cv = False
+k_fold = 5
+
+data_uploader, conf_uploader = st.columns([0.6,0.2],vertical_alignment="top")
+with data_uploader:
+    f = st.file_uploader("Please upload the dataset you want to analyse with Machine learning models")
+    if f:
+        df = be.return_df(f)
+        st.success("File uploaded")
+        df = st.data_editor(df)
+
+
+with conf_uploader:
+    st.write("")
+    st.write("")
+    st.write("")
+    with st.popover("Upload \n config"):
+        conf = st.file_uploader("config json",type=["json"])
+        if conf:
+            process_JSON(conf)
+            st.success("Uploaded config file")
+            
+            
+
+#summary stats
+
+st.divider()
+st.markdown("Select task")
+clas,tog,reg = st.columns(3)
+
+with tog:
+        task_is_regression = st.toggle("")
+with clas:
+    if task_is_regression:
+        st.markdown("Classification")
+    else:
+        st.markdown(":blue[Classification]")
+with reg:
+    if task_is_regression:
+        st.markdown(":red[Regression]")
+    else:
+        st.markdown("Regression")
+st.session_state.task = task_is_regression
+
+if f:
+    targ,seed,train_test = st.columns(3)
+    with targ:
+        target = st.selectbox("Select target variable",df.columns,index=len(df.columns)-1)
+        #possible_features = df.columns.drop(target)
+        st.session_state.target = target
+    with seed:
+        seed = st.number_input("Set seed",value = 42,step=1,min_value=1,max_value=None)
+        st.session_state.seed = seed
+    with train_test:
+        train_test_split = st.number_input("relative size of test set",value = 0.2,step=0.01,min_value=0.01,max_value=0.99)
+        st.session_state.train_test_split = train_test_split
+    
+    imput,scale = st.columns(2)
+    with imput:
+        data_imputation = st.selectbox("Replace missing data with",options=["mean","median","random"],index=0)
+    with scale: 
+        data_scaling = st.selectbox("Scaling",options=["No scaling","min_max scaling","standardising","0-1-standardizing"],index=0)
+
 
 if task_is_regression:
     models = ["Linear Regression", "Regression Tree", "Ridge Regression","Random Forest Regressor"]
@@ -327,72 +406,6 @@ if f:
         metric = st.selectbox(label="performance metric",options=metric_options,index=0)
 
 
-def check_JSON_validity():
-    #TODO
-    if conf is None:
-        create_JSON()
-    st.session_state.json_valid=True
-
-def create_JSON():
-    global conf
-    configuration = dict()
-    configuration["Runs"] = dict()
-    configuration["Models"] = dict()
-    configuration["Training"] = dict()
-    for model in st.session_state.models:
-        model_name = model["name"]
-        configuration["Models"][model_name] = dict()
-        configuration["Models"][model_name]["model_type"] = model["model_type"]
-        configuration["Models"][model_name]["params"] = model["params"]
-
-    for run in st.session_state.runs:
-        run_name = run["name"]
-        configuration["Runs"][run_name] = dict()
-        configuration["Runs"][run_name]["model_type"] = run["model_type"]
-        configuration["Runs"][run_name]["params"] = run["params"]
-        configuration["Runs"][run_name]["n_iter"] = run["n_iter"]
-
-    configuration["Training"]["is_regression"] = st.session_state.task
-    configuration["Training"]["CV"] = st.session_state.use_cv
-    if st.session_state.use_cv:
-        configuration["Training"]["k_fold"] = st.session_state.k_fold
-    configuration["Training"]["metric"] = st.session_state.metric
-    configuration["Training"]["target"] = st.session_state.target
-    configuration["Training"]["seed"] = st.session_state.seed
-    configuration["Training"]["train_test_split"] = st.session_state.train_test_split
-    
-    conf = json.dumps(configuration)
-
-
-def process_JSON():
-
-    json_file = open('json1')
-    json_str = json1_file.read()
-    json_data = json.loads(json1_str)[0]
-    st.session_state.metric = json_data["Training"]["metric"] 
-    st.session_state.use_cv = json_data["Training"]["CV"] 
-    st.session_state.k_fold = json_data["Training"]["k_fold"]
-    st.session_state.target = json_data["Training"]["target"] 
-    st.session_state.seed = json_data["Training"]["seed"]
-    st.session_state.train_test_split =json_data["Training"]["train_test_split"]
-
-    for model_name,model in json_data["Models"].items():
-        new_dict_model = model
-        new_dict_run["name"] = model_name
-        st.session_state.models.append(new_dict_run)
-        
-    for run_name,run in json_data["Runs"].items():
-        new_dict_run = run
-        new_dict_run["name"] = run_name
-
-        st.session_state.runs.append(new_dict_run)
-
-
-def check_JSON():
-    check_JSON_validity()
-    st.session_state.json_checked=True
-
-
 if f:
     if st.button(label="Check Configuration for validity"):
         create_JSON()
@@ -401,42 +414,26 @@ if f:
             st.error("Your Configuration file is errorneous")
         elif not st.session_state.json_checked:
             st.warning("Your Configuration file is unchecked.")
-        submit_side,preprocess_side,download_conf_side = st.columns(3)
-        with submit_side:
-            if st.button("Start ML Pipeline"):
-                stats,trained_models, params_trained_models = be.start_ML_Pipeline(conf)
-        with preprocess_side:
-            #TODO
-            st.write("Wait for preprocess to uncomment")
-            #st.download_button(label="Download configuration",data=be.preprocess_data(df,conf).to_csv(),file_name="processed_data.csv")
-        with download_conf_side:
-            st.download_button(label="Download configuration",data=conf,file_name="configuration.json")
-            
+
+if st.session_state.json_valid:
+    create_JSON()
+    submit_side,preprocess_side,download_conf_side = st.columns(3)
+    with submit_side:
+        if audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3"):
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHHHH")
+            stats,trained_models, params_trained_models = be.start_ML_Pipeline(conf)
+    with preprocess_side:
+        #TODO
+        st.write("Wait for preprocess to uncomment")
+        #st.download_button(label="Download configuration",data=be.preprocess_data(df,conf).to_csv(),file_name="processed_data.csv")
+    with download_conf_side:
+        st.download_button(label="Download configuration",data=conf,file_name="configuration.json")
+        
 #Add datavisalisation
 stats = False
 
 ##Iced Matcha LAtte audio
 #audio_autoplay("./music/Bauch_Beine_Po.mp3")
-
-audio_file = open('./music/Bauch_Beine_Po.mp3', 'rb')
-audio_bytes = audio_file.read()
-
-audio_base64 = base64.b64encode(audio_bytes).decode()
-
-# Define HTML for autoplay audio
-audio_html = f"""
-    <audio autoplay loop>
-    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-    Your browser does not support the audio element.
-    </audio>
-    """
-
-# Embed the HTML into Streamlit
-st.components.v1.html(audio_html, height=100)
-
-
-
-
 
 if stats:
     pass
