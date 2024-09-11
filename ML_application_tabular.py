@@ -63,7 +63,7 @@ param_grid_random_forest_classifier = {
 
 
 
-def audio_button(label,file,loop=True, start=0):
+def audio_button(label,file,func,args,loop=True, start=0,):
     """
     Function to create a button that plays audio and runs a custom function.
     """
@@ -92,6 +92,7 @@ def audio_button(label,file,loop=True, start=0):
         """
         # Embed the HTML into Streamlit
         st.components.v1.html(audio_html, height=100)
+        func(*args)
 
 
 def updated_json():
@@ -152,7 +153,7 @@ def model(model_type,param_dict):
 
     with delete_side:
         if st.button(label = f"Delete model {model['name']}",key="delete"+model_type,disabled = model["name"]==""):
-            for i,run_name in enumerate(st.session_state.model_names):
+            for i,model_name in enumerate(st.session_state.model_names):
                 if model_name["name"] == model["name"]:
                     st.session_state.models.remove(i)
                     st.toast(f"Model {model['name']} deleted")
@@ -419,8 +420,9 @@ if st.session_state.json_valid:
     create_JSON()
     submit_side,preprocess_side,download_conf_side = st.columns(3)
     with submit_side:
-        if audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3"):
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHHHHHHHHH")
+        if st.button("START ML Pipeline"):
+        #if audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3",print,"AAAAAAAAAAAA"):
+            print("aaaa")
             stats,trained_models, params_trained_models = be.start_ML_Pipeline(conf)
     with preprocess_side:
         #TODO
