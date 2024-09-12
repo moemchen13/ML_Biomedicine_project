@@ -125,11 +125,14 @@ def train_model(model, train_test_split, train_config):
     return searchCV.best_estimator_, searchCV.best_params_, searchCV.best_score_, searchCV.cv_results_, test_score
 
 
-def ML_Pipeline(data, json_config):
+def ML_Pipeline(data, json_config):    
     config = json.loads(json_config)
     
     models = {**config["Runs"], **config["Models"]}
     train_config = config["Training"]
+    names = list(models.keys())    
+    
+    task = "Regression" if train_config["is_regression"] else "Classification"
 
     target = train_config["target"]
     
@@ -141,16 +144,17 @@ def ML_Pipeline(data, json_config):
     
     stats = []
     hyperparams = []
-    trained_models = []     
+    trained_models = []
 
-    for model in enumerate(models):
-        trained_model, best_params, val_score, cv_results, test_score= train_model(models[model[1]], data_split, train_config)
-        
-        s = {"validation_score": val_score, "cv_summary": pd.DataFrame(cv_results)}
-        stats.append(s)
-        trained_models.append(trained_model)
-        hyperparams.append(best_params)
-    return stats, trained_models, hyperparams
+    for i,model in enumerate(models):
+        if models[model]["task"] == task:
+            trained_model, best_params, val_score, cv_results, test_score= train_model(models[model], data_split, train_config)
+            
+            s = {"validation_score": val_score, "cv_summary": pd.DataFrame(cv_results), "test_score": test_score}
+            stats.append(s)
+            trained_models.append(trained_model)
+            hyperparams.append(best_params)
+    return stats, trained_models, hyperparams, names
 
 def get_best_model(stats, trained_models):
     index = np.argmin(stats[1,:])
