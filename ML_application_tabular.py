@@ -6,6 +6,7 @@ import base64
 from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 import plotly.express as px
+import pandas as pd
 
 
 # Modelselection methods
@@ -94,7 +95,9 @@ def audio_button(label="Start ML Pipeline",file="./music/Bauch_Beine_Po.mp3",loo
         """
         # Embed the HTML into Streamlit
         st.components.v1.html(audio_html, height=10)
-    return True
+        return True
+    else:
+        return False
         
 
 
@@ -108,17 +111,22 @@ def task_color(task):
     else:
         return ":red[(Regression)]"
 
-def sidebar_update(action="action"):
+def sidebar_update(write=False):
     st.sidebar.header("Machine Learning Models:")
     st.sidebar.divider()
     st.sidebar.write("Random searches:")   
     for r in st.session_state.runs:
-        st.sidebar.write(r["name"] + " " + task_color(r["task"]))
+        if r not in st.session_state.sidebar_models:
+            st.sidebar.write(r["name"] + " " + task_color(r["task"]))
+            st.session_state.sidebar_models.append(r)
     st.sidebar.divider()
     st.sidebar.write("Custom Models:")            
     for m in st.session_state.models:
-        st.sidebar.write(m["name"] + " " + task_color(m["task"]))
+        if m not in st.session_state.sidebar_models:
+            st.sidebar.write(m["name"] + " " + task_color(m["task"]))
+            st.session_state.sidebar_models.append(m)
     st.sidebar.divider()
+    st.session_state.sidebar_models = []
     
 
 def run(model_type,param_dict):
@@ -148,7 +156,7 @@ def run(model_type,param_dict):
                 st.toast("Added run 🐕")
                 updated_json()
                 st.rerun()
-                sidebar_update()
+                sidebar_update(write=True)
             
     with delete_side:
         if st.button(label= f"Delete run: {run['name']}",key="delete_run"+model_type,disabled= run["name"]==""):
@@ -158,7 +166,7 @@ def run(model_type,param_dict):
                     st.toast(f"Run {run['name']} deleted")
                     updated_json()
                     st.rerun()
-                    sidebar_update()
+                    sidebar_update(write=True)
                     break
                     
 
@@ -190,7 +198,7 @@ def model(model_type,param_dict):
                 st.toast("Added model 🥳")
                 updated_json()
                 st.rerun()
-                sidebar_update()
+                sidebar_update(write=True)
         
 
     with delete_side:
@@ -200,7 +208,7 @@ def model(model_type,param_dict):
                     st.session_state.models.pop(i)
                     st.toast(f"Model {model['name']} deleted")
                     st.rerun()
-                    sidebar_update()
+                    sidebar_update(write=True)
                     break
             
 
@@ -285,8 +293,6 @@ def create_JSON():
     configuration["Training"]["seed"] = st.session_state.seed
     configuration["Training"]["train_test_split"] = st.session_state.train_test_split
     
-    print(conf)
-    
     conf = json.dumps(configuration)
 
 
@@ -326,6 +332,8 @@ if "runs" not in st.session_state:
     st.session_state["runs"] = []
 if "names" not in st.session_state:
     st.session_state["names"] = []
+if "sidebar_models" not in st.session_state:
+    st.session_state["sidebar_models"] = []
 if "models" not in st.session_state:
     st.session_state["models"] = []
 if "task" not in st.session_state:
@@ -354,7 +362,7 @@ k_fold = 5
 
 data_uploader, conf_uploader = st.columns([0.6,0.2],vertical_alignment="top")
 with data_uploader:
-    f = st.file_uploader("Please upload the dataset you want to analyse with Machine learning models")
+    f = st.file_uploader("Please upload the dataset you want to analyse with Machine learning models", type=["json","csv","tsv","xlsx","xml"])
     if f:
         df = be.return_df(f)
         st.success("File uploaded")
@@ -371,7 +379,7 @@ with conf_uploader:
             process_JSON(conf)
             st.success("Uploaded config file")
    
-sidebar_update()
+
          
 
 #summary stats
@@ -477,24 +485,26 @@ with tab1:
 
     if st.session_state.json_valid:
         create_JSON()
-        submit_side,preprocess_side,download_conf_side = st.columns(3)
-        with submit_side:
-            #if st.button("START ML Pipeline"):
-            if audio_button(label="Start ML Pipeline"):
-                stats,trained_models, params_trained_models, names_trained_models = be.ML_Pipeline(df, conf)
-                print(len(stats))
-                for i, model_stats in enumerate(stats):
-                    print(model_stats)
-                    #st.dataframe(model_stats["cv_summary"])
-                
+        
+        pipeline_side,preprocess_side,download_conf_side = st.columns(3)     
         with preprocess_side:
-            #TODO
-            st.write("Wait for preprocess to uncomment")
-            #st.download_button(label="Download configuration",data=be.preprocess_data(df,conf).to_csv(),file_name="processed_data.csv")
+            f_name = f.name.split(".")[0] + "_preprocessed.csv"
+            st.download_button(label="Download Preprocessed Data",data=be.clean_data(df).to_csv(),file_name=f_name)
         with download_conf_side:
-            st.download_button(label="Download configuration",data=conf,file_name="configuration.json")
-          
+            st.download_button(label="Download Configuration",data=conf,file_name="configuration.json")
+        with pipeline_side: 
+            pipeline_button = audio_button(label="Train ML Models")
             
+        if pipeline_button:
+            stats,trained_models, params_trained_models, names_trained_models = be.ML_Pipeline(df, conf)
+            stats_df = pd.DataFrame(stats).drop("cv_summary", axis=1)
+            score_name = "Test Score" + "(" + conf["Training"]["metric"] + ")"
+            stats_df = stats_df.rename(columns={'Test Score': score_name})
+            st.dataframe(stats_df, use_container_width=True, hide_index=True)
+            
+          
+    sidebar_update()
+          
     #Add datavisalisation
     stats = False
 

@@ -19,7 +19,7 @@ def return_df(file):
         df = pd.read_csv(name)
     elif extension=="tsv":
         df = pd.read_csv(name,sep="\t")
-    elif extension=="csv":
+    elif extension=="json":
         df = pd.read_json(name)
     elif extension=="xlsx":
         df = pd.read_excel(name)
@@ -96,6 +96,7 @@ def clean_data(X, imputation_strategy='most_frequent', scaling_method='minmax'):
     X_scaled = scaler.fit_transform(X_imputed)
     X_cleaned = pd.DataFrame.from_records(data=X_scaled, columns=X.columns)
     return X_cleaned
+    
 
 def train_model(model, train_test_split, train_config):
     
@@ -150,7 +151,7 @@ def ML_Pipeline(data, json_config):
         if models[model]["task"] == task:
             trained_model, best_params, val_score, cv_results, test_score= train_model(models[model], data_split, train_config)
             
-            s = {"validation_score": val_score, "cv_summary": pd.DataFrame(cv_results), "test_score": test_score}
+            s = {"Model name": model, "Model Type": models[model]["model_type"], "Average Validation Score": val_score, "cv_summary": pd.DataFrame(cv_results), "Test Score": test_score}
             stats.append(s)
             trained_models.append(trained_model)
             hyperparams.append(best_params)
