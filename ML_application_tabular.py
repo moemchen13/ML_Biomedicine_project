@@ -498,7 +498,7 @@ with tab1:
         if pipeline_button:
             stats,trained_models, params_trained_models, names_trained_models = be.ML_Pipeline(df, conf)
             stats_df = pd.DataFrame(stats).drop("cv_summary", axis=1)
-            score_name = "Test Score" + "(" + conf["Training"]["metric"] + ")"
+            score_name = "Test Score" + "(" + metric + ")"
             stats_df = stats_df.rename(columns={'Test Score': score_name})
             st.dataframe(stats_df, use_container_width=True, hide_index=True)
             
