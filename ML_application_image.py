@@ -633,25 +633,51 @@ st.write("Here we can generate the augmented data and download it")
 st.divider()
 st.header("The Impact of Data augmentation on Deep Learning")
 st.write("in the following we train two models. One on the original dataset and one on the newly created one. Then those models are compared")
+
+
 if st.button("Train models"):
+    #TODO Control this
+    '''
     with st.spinner(text="In progress first model..."):
         model_without_augmentation,stats = train_model(data,augmented_data)
+        st.session_state.trained_model = model_without_augmentation
+        st.session_state.model_stats = stats
     with st.spinner(text="In progress second model..."):
         model_with_augmentation,stats_a = train_model(data,augmented_data,use_augmented_data=True)
+        st.session_state.trained_augmented_model = model_with_augmentation
+        st.session_state.model_stats_augmented = stats_a
+    '''
+    #TODO delete
+    stats = (0.9,0.4,0.5)
+    stats_a = (0.91,0.9,0.6)
+    st.session_state.model_stats_augmented = stats_a
+    st.session_state.model_stats = stats
+    #TODO#####
 
-    model1_acc_data = stats[0]
-    model2_acc_data = stats_a[0]
-    model1_acc_aug_data = stats[1]
-    model2_acc_aug_data = stats_a[1]
-    model1_auc_data = stats[2]
-    model2_auc_data = stats_a[2]
+st.divider()
 
-    st.header("Model Comparison")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Accuracy", model2_acc_data, model2_acc_data-model1_acc_data)
-    col2.metric("Accuracy on augmented", model2_acc_aug_data, model2_acc_aug_data - model1_acc_aug_data)
-    col3.metric("AUC", model2_auc_data,model2_auc_data-model1a_auc_data)
 
-    st.download_button("Download model trained on augmented data", data=model_with_augmentation,file="model_augmented")
-    st.download_button("Download model trained on normal data", data=model_without_augmentation,file="model_not_augmented")
+st.header("Model Comparison")
+col1, col2, col3 = st.columns(3)
+if "model_stats_augmented" in st.session_state and "model_stats" in st.session_state:
+    model1_acc_data,model1_acc_aug_data,model1_auc_data = st.session_state.model_stats
+    model2_acc_data,model2_acc_aug_data,model2_auc_data = st.session_state.model_stats_augmented
     
+
+    col1.metric("Accuracy", model2_acc_data, model2_acc_data - model1_acc_data)
+    col2.metric("Accuracy on augmented", model2_acc_aug_data, model2_acc_aug_data - model1_acc_aug_data)
+    col3.metric("AUC", model2_auc_data,model2_auc_data - model1_auc_data)
+
+
+left,middle = st.columns([0.05,0.95],vertical_alignment="bottom")
+with left:
+    if "trained_model" in st.session_state:
+        model.save("trained_model.h5")
+        with open("trained_model.h5", 'rb') as mod:
+            st.download_button("Download model trained on augmented data", data=mod,file="model_augmented.h5")
+
+with middle:
+    if "trained_augmented_model" in st.session_state:
+        model.save("trained_model_augmented.h5")
+        with open("trained_model_augmented.h5",'rb') as aug_mod:
+            st.download_button("Download model trained on normal data", data=aug_mod,file="model_not_augmented")
