@@ -1,14 +1,11 @@
 import streamlit as st 
 import backend_ML as be
-import time
 import json
 import base64
 from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
-import plotly.express as px
 import pandas as pd
 import streamlit as st
-import joblib
 import pickle
 
 
@@ -357,6 +354,14 @@ if "target" not in st.session_state:
     st.session_state["Seed"] = None
 if "train_test_split" not in st.session_state:
     st.session_state["train_test_split"] = 0.2
+if "trained" not in st.session_state:
+    st.session_state["trained"] = False
+if "trained_models" not in st.session_state:
+    st.session_state["trained_models"] = []
+if "trained_models_params" not in st.session_state:
+    st.session_state["trained_models_params"] = []
+if "trained_model_names" not in st.session_state:
+    st.session_state["trained_models_names"] = []
 
 
 metric = None
@@ -508,22 +513,29 @@ with tab1:
                 score_name = "Test Score" + "(" + metric + ")"
                 stats_df = stats_df.rename(columns={'Test Score': score_name})
                 st.dataframe(stats_df, use_container_width=True, hide_index=True)
-                
-                
-            
+                st.session_state.trained = True
+                st.session_state.trained_models = trained_models
+                st.session_state.trained_models_params = params_trained_models
+                st.session_state.trained_models_names = names_trained_models
+        
+        if st.session_state.trained:         
                 download_select, model_download, param_download = st.columns(3, vertical_alignment="bottom")
                 
                 with download_select:
-                    download_options = st.selectbox(label="Select Models to download",options=names_trained_models)
-                    chosen_model = trained_models[names_trained_models.index(download_options)]
-                    print(type(chosen_model))
-                    print()
-                    print()
+                    download_options = st.selectbox(label="Select Models to download",options=st.session_state.trained_models_names)
+                    chosen_model = st.session_state.trained_models[st.session_state.trained_models_names.index(download_options)]
                     
                 with model_download:
-                    st.download_button(label="Download Models",data=pickle.dump(chosen_model, open(str(download_options), "wb")))
+                    m = download_options + "_trained.pkl"
+                    with open(m, "wb") as file:                        
+                        pickle.dump(chosen_model, file)
+                    with open(m, "rb") as file:                        
+                        st.download_button(label="Download Models",data=file, file_name=m)
                 with param_download:
-                    st.download_button(label="Download best Parameters",data=be.clean_data(df).to_csv(),file_name=f_name)
+                    params = st.session_state.trained_models_params[st.session_state.trained_models_names.index(download_options)]
+                    params_json = json.dumps(params)
+                    n = download_options + "_best_params.json"
+                    st.download_button(label="Download best Parameters",data=params_json, file_name=n)
             
     sidebar_update()
           
