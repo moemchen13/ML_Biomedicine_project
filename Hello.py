@@ -12,7 +12,7 @@ st.write("Team:")
 st.markdown("<p>Moritz Christ<br> Master Machine Learning (3. Semester)<br>Jonathan Nemitz<br>Master Machine Learning (5. Semester)</p>",unsafe_allow_html=True)
 
 
-st.write("Impressum")
-st.markdown("Eberhard Karls Universität Tübingen <br> Project in the framework of the ML for Biomedicine internship<br><br> Special thanks to Elisa Maske,Shirin Davis and the Wise guys",unsafe_html_allow=True)
+st.write("<h4>Impressum</h4>")
+st.markdown("Eberhard Karls Universität Tübingen <br> Project in the framework of the ML for Biomedicine internship<br><br> Special thanks to: <br>Elisa Maske<br>Shirin Davis <br>Nintendo",unsafe_allow_html=True)
 
 
