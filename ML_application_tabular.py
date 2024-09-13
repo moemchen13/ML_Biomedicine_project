@@ -7,6 +7,7 @@ from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 import plotly.express as px
 import pandas as pd
+import streamlit as st
 
 
 # Modelselection methods
@@ -325,7 +326,7 @@ def check_JSON():
     st.session_state.json_checked=True
 
 
-st.set_page_config(page_title="ML Tabular data site", layout="wide")
+st.set_page_config(page_title="ML Tabular data site", layout="wide", page_icon="📊")
 st.title("Machine learning for tabular data")
 
 if "runs" not in st.session_state:
@@ -497,11 +498,19 @@ with tab1:
             
         if pipeline_button:
             stats,trained_models, params_trained_models, names_trained_models = be.ML_Pipeline(df, conf)
+            
             stats_df = pd.DataFrame(stats).drop("cv_summary", axis=1)
             score_name = "Test Score" + "(" + metric + ")"
             stats_df = stats_df.rename(columns={'Test Score': score_name})
             st.dataframe(stats_df, use_container_width=True, hide_index=True)
-            
+        
+            download_select, model_download, param_download = st.columns(3)
+            with download_select:
+                    download_options = st.multiselect(label="Select Models to download", key="model_downl" + metric,options=names_trained_models)
+            with model_download:
+                    st.download_button(label="Download Models",data=be.clean_data(df).to_csv(),file_name=f_name)
+            with param_download:
+                k=1
           
     sidebar_update()
           
