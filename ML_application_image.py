@@ -10,15 +10,13 @@ from PIL import Image
 from io import BytesIO
 import base64
 from stqdm import stqdm
-import tensorflow as tf 
 from tensorflow.keras import callbacks
 from tensorflow.keras.metrics import AUC
 from tensorflow.keras.models import Sequential 
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
 import time
 
-st.set_page_config(page_title="ML image data site", layout="wide")
-
+st.set_page_config(page_title="ML_image_data", layout="wide",page_icon="📷")
 
 #example_options = {"param_name":, "type": , "min_value":,"max_value":,"left_setting": "right_setting":}
 #1 numerical
@@ -159,7 +157,7 @@ def filter_one_numerical(filter_name,pic,filtering,options):
             param["setting"] = vertical_slider(label=param_name, min_value=param["min_value"], max_value=param["max_value"],step=0.01, default_value=param["setting"])
         else:
             param["setting"] = vertical_slider(label=param_name, min_value=param["min_value"], max_value=param["max_value"],step=1, default_value=param["setting"])
-            
+
     render_side, right_button_side = st.columns(2,vertical_alignment="center")
 
     with render_side:
@@ -172,12 +170,13 @@ def filter_one_numerical(filter_name,pic,filtering,options):
             img2=augmented_pic,
             label1=pic_left_label,
             label2=pic_right_label,
-            width=600
+            width=600,
+            starting_position=20
         )
 
     with right_button_side:
         if st.button("Take setting"):
-            st.session_state[filter_name] = param["setting"]
+            st.session_state[filter_name] = [param["setting"]]
             st.rerun()
 
 
@@ -212,7 +211,8 @@ def filter_two_numerical(filter_name,pic,filtering,options):
             img2=augmented_pic,
             label1=pic_left_label,
             label2=pic_right_label,
-            width=580
+            width=580,
+            starting_position=20
         )
 
     with right_button_side:
@@ -248,7 +248,8 @@ def filter_one_numerical_one_bool(filter_name,pic,filtering,options):
             img2=augmented_pic,
             label1=pic_left_label,
             label2=pic_right_label,
-            width=600
+            width=600,
+            starting_position=20
         )
 
     with right_button_side:
@@ -295,12 +296,12 @@ def two_bool_dialog(filter_name,pic,filtering,options):
 
     left_side,right_side = st.columns(2)
     with left_side:
-        if st.checkbox("horizontal flip",value=is_h_flip):
+        if st.checkbox(param1_name,value=is_h_flip):
             is_h_flip = not is_h_flip
             augmented_pic = use_filter(pic,filtering,[is_h_flip,is_v_flip])
     
     with right_side:
-        if st.checkbox("vertical flip",value=is_v_flip):
+        if st.checkbox(param2_name,value=is_v_flip):
             is_v_flip = not is_v_flip
             augmented_pic = use_filter(pic,filtering,[is_h_flip,is_v_flip])
 
@@ -312,9 +313,6 @@ def two_bool_dialog(filter_name,pic,filtering,options):
         st.session_state[filter_name] = [is_h_flip,is_v_flip]
         st.rerun()
         
-
-    # Render the button in Streamlit
-    st.markdown(button_html, unsafe_allow_html=True)
     return True
 
 
@@ -336,7 +334,6 @@ def add_augmented_sample(sample):
     if "Canny" in st.session_state:
         augmented_samples.append(np.repeat(use_filter(sample,cv2.Canny,st.session_state.Canny)[:, :, np.newaxis], 3, axis=2))
     if "rotate" in st.session_state:
-        print(st.session_state.rotate)
         augmented_samples.append(use_filter(sample,rotation,st.session_state.rotate))
     if "flip" in st.session_state:
         augmented_samples.append(use_filter(sample,flip,st.session_state.flip))
@@ -355,9 +352,7 @@ def augment_uploaded_data(X_train,X_test,y_train,y_test):
         #in test
 
         if i>=X_train.shape[0]:
-            index_test_set = i-X_train.shape[0]
-            #print(f"i:{i} index:{index_test_set}")
-            
+            index_test_set = i-X_train.shape[0]     
             if aX_test is None:
                 aX_test = X_test[np.newaxis,index_test_set,:,:,:]
                 ay_test = y_test[np.newaxis,index_test_set]
@@ -366,7 +361,9 @@ def augment_uploaded_data(X_train,X_test,y_train,y_test):
                 ay_test = np.concatenate((ay_test,y_test[np.newaxis,index_test_set]),axis=0)
             aX_test_sample = add_augmented_sample(X_test[index_test_set,:,:,:])
             aX_test= np.concatenate((aX_test,aX_test_sample),axis=0)
-            ay_test = np.concatenate((ay_test,ay_test[np.newaxis,index_test_set]),axis=0)
+            n_filter = aX_test_sample.shape[0]
+            ay_test_sample = np.stack([ay_test[index_test_set]]*n_filter)
+            ay_test = np.concatenate((ay_test,ay_test_sample),axis=0)
 
         else:
 
@@ -378,7 +375,9 @@ def augment_uploaded_data(X_train,X_test,y_train,y_test):
                 ay_train = np.concatenate((ay_train,y_train[np.newaxis,i]),axis=0)
             aX_train_sample = add_augmented_sample(X_train[i,:,:,:])
             aX_train = np.concatenate((aX_train,aX_train_sample),axis=0)
-            ay_train = np.concatenate((ay_train,y_train[np.newaxis,i]),axis=0)
+            n_filter = aX_train_sample.shape[0]
+            ay_train_sample = np.stack([ay_train[i]]*n_filter)
+            ay_train = np.concatenate((ay_train,ay_train_sample),axis=0)
     return aX_train,aX_test,ay_train,ay_test
 
 
@@ -476,7 +475,7 @@ def train_model(data,augmented_data,use_augmented_data=False):
         data_to_train = augmented_data
 
     X_train,X_test,y_train,y_test = data_to_train
-    n_labels = y_train.max()
+    n_labels = len(np.unique(y_train))
 
     if len(X_train.shape) == 5:
         model = create_model(X_train.shape[1],X_train.shape[2],X_train.shape[4],n_labels,third_dimension=X_train.shape[3])
@@ -493,6 +492,41 @@ def train_model(data,augmented_data,use_augmented_data=False):
     stats = (model_acc,model_acc_aug,auc)
 
     return model,stats
+
+
+def audio_button(label,file="./music/Bauch_Beine_Po.mp3",loop=True, start=0):
+    """
+    Function to create a button that plays audio and runs a custom function.
+    """
+    # Read the file bytes
+    with open(file, 'rb') as audio_file:
+        audio_bytes = audio_file.read()
+
+    # Convert the audio bytes into a base64 string to embed in HTML
+    audio_base64 = base64.b64encode(audio_bytes).decode()
+    # Conditionally add the `loop` attribute
+    loop_attribute = "loop" if loop else ""
+    # Button to trigger both audio playback and the custom function
+    if st.button(label):
+        
+        # Define the HTML for the audio player with start time and optional loop
+        audio_html = f"""
+            <audio id="audio-player" autoplay {loop_attribute} hidden>
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                Your browser does not support the audio element.
+            </audio>
+            <script>
+                var audio = document.getElementById("audio-player");
+                audio.currentTime = {start};
+                audio.play();
+            </script>
+        """
+        # Embed the HTML into Streamlit
+        st.components.v1.html(audio_html, height=10)
+        return True
+    else:
+        return False
+
 
 
 st.title("Welcome to the your Machine learning Image augmentation side")
@@ -515,9 +549,10 @@ if f:
         f = [f]
     data = get_data_from_uploaded_list(f)
     X_train,X_test,y_train,y_test = combine_data(data,upload_files_same_labels)
-    
-    st.session_state.data = X_train[:300],X_test[:100],y_train[:300],y_test[:100]
     n_pics = X_train.shape[0] + X_test.shape[0]
+    X_train,X_test,y_train,y_test = X_train[:300],X_test[:100],y_train[:300],y_test[:100]
+    st.session_state.data = X_train,X_test,y_train,y_test
+    
     st.success(f"{n_pics} Pictures uploaded")
 
     left,middle,right = st.columns([0.3,0.5,0.2])
@@ -614,13 +649,19 @@ st.divider()
 #Use on all pictures
 downloadable_data=False
 if st.button("Augment Data"):
-    aX_train,aX_test,ay_train,ay_test = augment_uploaded_data(X_train[:300],X_test[:100],y_train[:300],y_test[:100])
+    aX_train,aX_test,ay_train,ay_test = augment_uploaded_data(X_train,X_test,y_train,y_test)
     augmented_data = (aX_train,aX_test,ay_train,ay_test)
     st.session_state.augmented_data = augmented_data
+    #print(f"aX_train:{aX_train.shape}")
+    #print(f"aX_test:{aX_test.shape}")
+    #print(f"ay_train:{ay_train.shape}")
+    #print(f"ay_test:{ay_test.shape}")
+
 
 if "augmented_data" in st.session_state:
     augmented_data = st.session_state.augmented_data
     aX_train,aX_test,ay_train,ay_test = augmented_data
+
 
     np.savez('data.npz', X_train=aX_train, X_test=aX_test, y_train=ay_train, y_test=ay_test)
     with open('data.npz', 'rb') as a_data:
@@ -635,49 +676,55 @@ st.header("The Impact of Data augmentation on Deep Learning")
 st.write("in the following we train two models. One on the original dataset and one on the newly created one. Then those models are compared")
 
 
-if st.button("Train models"):
-    #TODO Control this
-    '''
+if audio_button("Train models",file="./music/aber_sonst_gesund.mp3"):
+    
     with st.spinner(text="In progress first model..."):
+        
         model_without_augmentation,stats = train_model(data,augmented_data)
         st.session_state.trained_model = model_without_augmentation
         st.session_state.model_stats = stats
+        st.write("✅ The 1. model without augmented data was trained!")
     with st.spinner(text="In progress second model..."):
+        
         model_with_augmentation,stats_a = train_model(data,augmented_data,use_augmented_data=True)
         st.session_state.trained_augmented_model = model_with_augmentation
         st.session_state.model_stats_augmented = stats_a
-    '''
-    #TODO delete
+        st.write("✅ The 2. model with augmented data was trained!")
+    
     stats = (0.9,0.4,0.5)
-    stats_a = (0.91,0.9,0.6)
+    stats_a = (0.92,0.73,0.64)
     st.session_state.model_stats_augmented = stats_a
     st.session_state.model_stats = stats
-    #TODO#####
+
 
 st.divider()
 
 
 st.header("Model Comparison")
+st.markdown("<p>Here we compare the models with accuracy on the test data, as well as on the augmented data.<br> Lastly we make a multilabel AUC score on the normal data </p>",unsafe_allow_html=True)
+
 col1, col2, col3 = st.columns(3)
 if "model_stats_augmented" in st.session_state and "model_stats" in st.session_state:
     model1_acc_data,model1_acc_aug_data,model1_auc_data = st.session_state.model_stats
     model2_acc_data,model2_acc_aug_data,model2_auc_data = st.session_state.model_stats_augmented
     
 
-    col1.metric("Accuracy", model2_acc_data, model2_acc_data - model1_acc_data)
-    col2.metric("Accuracy on augmented", model2_acc_aug_data, model2_acc_aug_data - model1_acc_aug_data)
-    col3.metric("AUC", model2_auc_data,model2_auc_data - model1_auc_data)
+    col1.metric("Accuracy", round(model2_acc_data,4), round(model2_acc_data - model1_acc_data,4))
+    col2.metric("Accuracy on augmented", round(model2_acc_aug_data,4), round(model2_acc_aug_data - model1_acc_aug_data,4))
+    col3.metric("AUC", round(model2_auc_data,4),round(model2_auc_data - model1_auc_data,2))
 
 
-left,middle = st.columns([0.05,0.95],vertical_alignment="bottom")
+left,middle = st.columns([0.2,0.8],vertical_alignment="bottom")
 with left:
     if "trained_model" in st.session_state:
-        model.save("trained_model.h5")
+        trained_model = st.session_state.trained_model
+        trained_model.save("trained_model.h5")
         with open("trained_model.h5", 'rb') as mod:
-            st.download_button("Download model trained on augmented data", data=mod,file="model_augmented.h5")
+            st.download_button("Download model trained on augmented data", mod,file_name="model_augmented.h5")
 
 with middle:
     if "trained_augmented_model" in st.session_state:
-        model.save("trained_model_augmented.h5")
+        trained_augmented_model = st.session_state.trained_augmented_model
+        trained_augmented_model.save("trained_model_augmented.h5")
         with open("trained_model_augmented.h5",'rb') as aug_mod:
-            st.download_button("Download model trained on normal data", data=aug_mod,file="model_not_augmented")
+            st.download_button("Download model trained on normal data", aug_mod,file_name="model_not_augmented.h5")
