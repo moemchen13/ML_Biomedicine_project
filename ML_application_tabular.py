@@ -8,6 +8,8 @@ from streamlit_pandas_profiling import st_profile_report
 import plotly.express as px
 import pandas as pd
 import streamlit as st
+import joblib
+import pickle
 
 
 # Modelselection methods
@@ -498,20 +500,31 @@ with tab1:
             
         if pipeline_button:
             stats,trained_models, params_trained_models, names_trained_models = be.ML_Pipeline(df, conf)
+            if names_trained_models == []:
+                task = 'Regression' if st.session_state.task else 'Classification'
+                st.warning("No valid models selected for " + task + ". Please change the task or add compatible models.")
+            else:
+                stats_df = pd.DataFrame(stats).drop("cv_summary", axis=1)
+                score_name = "Test Score" + "(" + metric + ")"
+                stats_df = stats_df.rename(columns={'Test Score': score_name})
+                st.dataframe(stats_df, use_container_width=True, hide_index=True)
+                
+                
             
-            stats_df = pd.DataFrame(stats).drop("cv_summary", axis=1)
-            score_name = "Test Score" + "(" + metric + ")"
-            stats_df = stats_df.rename(columns={'Test Score': score_name})
-            st.dataframe(stats_df, use_container_width=True, hide_index=True)
-        
-            download_select, model_download, param_download = st.columns(3)
-            with download_select:
-                    download_options = st.multiselect(label="Select Models to download", key="model_downl" + metric,options=names_trained_models)
-            with model_download:
-                    st.download_button(label="Download Models",data=be.clean_data(df).to_csv(),file_name=f_name)
-            with param_download:
-                k=1
-          
+                download_select, model_download, param_download = st.columns(3, vertical_alignment="bottom")
+                
+                with download_select:
+                    download_options = st.selectbox(label="Select Models to download",options=names_trained_models)
+                    chosen_model = trained_models[names_trained_models.index(download_options)]
+                    print(type(chosen_model))
+                    print()
+                    print()
+                    
+                with model_download:
+                    st.download_button(label="Download Models",data=pickle.dump(chosen_model, open(str(download_options), "wb")))
+                with param_download:
+                    st.download_button(label="Download best Parameters",data=be.clean_data(df).to_csv(),file_name=f_name)
+            
     sidebar_update()
           
     #Add datavisalisation

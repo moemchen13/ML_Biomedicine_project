@@ -44,17 +44,12 @@ def select_model(model):
         ML_model = RandomForestRegressor()
     return ML_model
 
-def save_model(model, model_name, folder_name='saved_models'):
-    # Create the folder if it doesn't exist
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
-
+def save_model(model, model_name):
     # Define the file path
-    file_path = os.path.join(folder_name, model_name + '.pkl')
+    file_path = model_name + '.pkl'
 
     # Save the model using joblib
     joblib.dump(model, file_path)
-    print(f"Model saved at: {file_path}")
     
 
 # Custom imputation using random values between min and max for each column
