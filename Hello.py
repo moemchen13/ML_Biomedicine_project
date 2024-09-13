@@ -19,7 +19,7 @@ st.markdown("<ul><li>We never will be webdesigners</li> <li>streamlit is nice fo
 
 
 
-st.write("<h4>Impressum</h4>")
+st.header("Impressum")
 st.markdown("Eberhard Karls Universität Tübingen <br> Project in the framework of the ML for Biomedicine internship<br><br> <h5>Special thanks to:</h5> <ol><li>Elisa Maske</li><li>Nintendo</li><li>Shirin Davis</li> <ol>",unsafe_allow_html=True)
 
 
