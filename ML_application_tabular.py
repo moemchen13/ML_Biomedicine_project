@@ -523,18 +523,20 @@ with tab1:
                 
                 with download_select:
                     download_options = st.selectbox(label="Select Models to download",options=st.session_state.trained_models_names)
-                    chosen_model = st.session_state.trained_models[st.session_state.trained_models_names.index(download_options)]
+                    #opt = st.session_state.trained_models_names.index(download_options)
+                    chosen_model = st.session_state.trained_models[0]
                     
                 with model_download:
-                    m = download_options + "_trained.pkl"
+                    m = "model_trained.pkl"
                     with open(m, "wb") as file:                        
                         pickle.dump(chosen_model, file)
                     with open(m, "rb") as file:                        
                         st.download_button(label="Download Models",data=file, file_name=m)
                 with param_download:
-                    params = st.session_state.trained_models_params[st.session_state.trained_models_names.index(download_options)]
+                    #params = st.session_state.trained_models_params[st.session_state.trained_models_names.index(download_options)]
+                    params = st.session_state.trained_models_params[0]
                     params_json = json.dumps(params)
-                    n = download_options + "_best_params.json"
+                    n = "best_params.json"
                     st.download_button(label="Download best Parameters",data=params_json, file_name=n)
             
     sidebar_update()
